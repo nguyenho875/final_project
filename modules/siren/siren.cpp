@@ -9,11 +9,16 @@
 
 //=====[Declaration of private defines]========================================
 
+#define LEDS_QUANTITY 3
+
 //=====[Declaration of private data types]=====================================
 
 //=====[Declaration and initialization of public global objects]===============
 
-DigitalOut sirenPin(PE_10);
+DigitalOut RGBLed[] = {(PA_7), (PE_6), (PE_5)};
+DigitalOut sirenPin(PC_9);
+AnalogIn potentiometer(A0);
+Ticker tickerBrightControl;
 
 //=====[Declaration of external public global variables]=======================
 
@@ -22,8 +27,20 @@ DigitalOut sirenPin(PE_10);
 //=====[Declaration and initialization of private global variables]============
 
 static bool sirenState = OFF;
+static float dutyCycle = 0.5f;
+
+static int onTime[LEDS_QUANTITY];
+static int offTime[LEDS_QUANTITY];
+
+static int tickRateMSBrightControl = 1;
+static int tickCounter[LEDS_QUANTITY];
+
+static float periodSFloat[LEDS_QUANTITY];
 
 //=====[Declarations (prototypes) of private functions]========================
+
+static void setPeriod( lightSystem_t light, float period );
+static void tickerCallbackBrightControl( );
 
 //=====[Implementations of public functions]===================================
 
@@ -57,5 +74,76 @@ void sirenUpdate( int strobeTime )
     }
 }
 
+//---Lights
+
+void lightSystemInit()
+{
+    brightControlInit();
+}
+
+void lightSystemUpdate()
+{
+    dutyCycle = lightLevelControlRead();
+
+    setDutyCycle( RGB_LED_RED, dutyCycle );
+    setDutyCycle( RGB_LED_GREEN, dutyCycle );
+    setDutyCycle( RGB_LED_BLUE, dutyCycle );
+
+}
+
+void brightControlInit()
+{
+    tickerBrightControl.attach( tickerCallbackBrightControl, 
+                              ( (float) tickRateMSBrightControl) / 1000.0 );
+
+    setPeriod( RGB_LED_RED, 0.01f );
+    setPeriod( RGB_LED_GREEN, 0.01f );
+    setPeriod( RGB_LED_BLUE, 0.01f );
+
+    setDutyCycle( RGB_LED_RED, 0.5f );
+    setDutyCycle( RGB_LED_GREEN, 0.5f );
+    setDutyCycle( RGB_LED_BLUE, 0.5f );
+}
+
+void setDutyCycle( lightSystem_t light, float dutyCycle )
+{
+    onTime[light] = int ( ( periodSFloat[light] * dutyCycle ) * 1000 );
+    offTime[light] = int ( periodSFloat[light] * 1000) - onTime[light];
+}
+
+void lightLevelControlInit() { }
+
+void lightLevelControlUpdate() { }
+
+float lightLevelControlRead()
+{
+    return potentiometer.read();
+}
+
 //=====[Implementations of private functions]==================================
 
+static void setPeriod( lightSystem_t light, float period )
+{
+    periodSFloat[light] = period;
+}
+
+static void tickerCallbackBrightControl( )
+{
+    int i;
+
+    for (i = 0 ; i < LEDS_QUANTITY ; i++) {
+        tickCounter[i]++;
+        if ( RGBLed[i].read() == ON ) {
+            if( tickCounter[i] > onTime[i] ) {
+                tickCounter[i] = 1;
+                if ( offTime[i] ) RGBLed[i] = OFF;
+                
+            }
+        } else {
+            if( tickCounter[i] > offTime[i] ) { 
+                tickCounter[i] = 1;
+                if ( onTime[i] ) RGBLed[i] = ON;
+            }
+        }
+    }
+}

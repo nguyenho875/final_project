@@ -33,6 +33,7 @@ void smartHomeSystemInit()
     fireAlarmInit();
     pcSerialComInit();
     motorControlInit();
+    lightSystemInit();
 }
 
 void smartHomeSystemUpdate()
@@ -42,6 +43,7 @@ void smartHomeSystemUpdate()
     pcSerialComUpdate();
     eventLogUpdate();
     motorControlUpdate();
+    lightSystemUpdate();
     delay(SYSTEM_TIME_INCREMENT_MS);
 }
 
