@@ -22,6 +22,9 @@ motorDirection_t motorDirectionRead();
 
 void motorControlUpdate();
 
+void readFloorLevelAndMoveElevatorToFirstFloor();
+bool confirmElevatorOnFirstFloor();
+
 //=====[#include guards - end]=================================================
 
 #endif // _MOTOR_H_

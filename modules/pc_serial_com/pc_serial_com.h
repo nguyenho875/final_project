@@ -9,12 +9,7 @@
 
 //=====[Declarations (prototypes) of public functions]=========================
 
-void pcSerialComInit();
-char pcSerialComCharRead();
 void pcSerialComStringWrite( const char* str );
-void pcSerialComUpdate();
-bool pcSerialComCodeCompleteRead();
-void pcSerialComCodeCompleteWrite( bool state );
 
 //=====[#include guards - end]=================================================
 

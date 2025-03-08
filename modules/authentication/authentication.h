@@ -1,7 +1,7 @@
 //=====[#include guards - begin]===============================================
 
-#ifndef _FIRE_ALARM_H_
-#define _FIRE_ALARM_H_
+#ifndef _AUTHENTICATION_H_
+#define _AUTHENTICATION_H_
 
 //=====[Declaration of public defines]=========================================
 
@@ -9,13 +9,17 @@
 
 //=====[Declarations (prototypes) of public functions]=========================
 
-void fireAlarmInit();
-void fireAlarmUpdate();
-bool gasDetectorStateRead();
-bool overTemperatureDetectorStateRead();
-bool gasDetectedRead();
-bool overTemperatureDetectedRead();
+void userInterfaceInit();
+void userInterfaceUpdate();
+bool userInterfaceCodeCompleteRead();
+void userInterfaceCodeCompleteWrite( bool state );
+
+bool incorrectCodeStateRead();
+void incorrectCodeStateWrite( bool state );
+
+bool systemBlockedStateRead();
+void systemBlockedStateWrite( bool state );
 
 //=====[#include guards - end]=================================================
 
-#endif // _FIRE_ALARM_H_
+#endif // _AUTHENTICATION_H_

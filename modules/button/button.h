@@ -1,19 +1,16 @@
 //=====[#include guards - begin]===============================================
 
-#ifndef _STROBE_LIGHT_H_
-#define _STROBE_LIGHT_H_
+#ifndef _BUTTON_H_
+#define _BUTTON_H_
 
 //=====[Declaration of public defines]=========================================
 
 //=====[Declaration of public data types]======================================
 
 //=====[Declarations (prototypes) of public functions]=========================
-
-void strobeLightInit();
-bool strobeLightStateRead();
-void strobeLightStateWrite( bool state );
-void strobeLightUpdate( int strobeTime );
+void buttonInit();
+bool buttonStateRead();
 
 //=====[#include guards - end]=================================================
 
-#endif // _STROBE_LIGHT_H_
+#endif // _BUTTON_H_
