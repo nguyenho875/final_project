@@ -3,8 +3,7 @@
 #include "mbed.h"
 #include "arm_book_lib.h"
 
-#include "strobe_light.h"
-#include "smart_home_system.h"
+#include "leds.h"
 
 //=====[Declaration of private defines]========================================
 
@@ -12,7 +11,8 @@
 
 //=====[Declaration and initialization of public global objects]===============
 
-DigitalOut strobeLight(LED1);
+DigitalOut redLed(D11);
+DigitalOut greenLed(D12);
 
 //=====[Declaration of external public global variables]=======================
 
@@ -20,40 +20,24 @@ DigitalOut strobeLight(LED1);
 
 //=====[Declaration and initialization of private global variables]============
 
-static bool strobeLightState = OFF;
-
 //=====[Declarations (prototypes) of private functions]========================
 
 //=====[Implementations of public functions]===================================
 
-void strobeLightInit()
+void ledsInit()
 {
-    strobeLight = OFF;
+    redLed = OFF;
+    greenLed = OFF;
 }
 
-bool strobeLightStateRead()
+void redLedUpdate( bool state )
 {
-    return strobeLightState;
+    redLed = state;
 }
 
-void strobeLightStateWrite( bool state )
+void greenLedUpdate( bool state )
 {
-    strobeLightState = state;
-}
-
-void strobeLightUpdate( int strobeTime )
-{
-    static int accumulatedTimeAlarm = 0;
-    accumulatedTimeAlarm = accumulatedTimeAlarm + SYSTEM_TIME_INCREMENT_MS;
-    
-    if( strobeLightState ) {
-        if( accumulatedTimeAlarm >= strobeTime ) {
-            accumulatedTimeAlarm = 0;
-            strobeLight= !strobeLight;
-        }
-    } else {
-        strobeLight = OFF;
-    }
+    greenLed = state;
 }
 
 //=====[Implementations of private functions]==================================

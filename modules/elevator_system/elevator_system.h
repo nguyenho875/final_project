@@ -1,19 +1,19 @@
 //=====[#include guards - begin]===============================================
 
-#ifndef _SIREN_H_
-#define _SIREN_H_
+#ifndef _ELEVATOR_SYSTEM_H_
+#define _ELEVATOR_SYSTEM_H_
 
 //=====[Declaration of public defines]=========================================
+
+#define SYSTEM_TIME_INCREMENT_MS   10
 
 //=====[Declaration of public data types]======================================
 
 //=====[Declarations (prototypes) of public functions]=========================
 
-void sirenInit();
-bool sirenStateRead();
-void sirenStateWrite( bool state );
-void sirenUpdate( int strobeTime );
+void smartHomeSystemInit();
+void smartHomeSystemUpdate();
 
 //=====[#include guards - end]=================================================
 
-#endif // _SIREN_H_
+#endif // _ELEVATOR_SYSTEM_H_

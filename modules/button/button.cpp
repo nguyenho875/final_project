@@ -3,9 +3,7 @@
 #include "mbed.h"
 #include "arm_book_lib.h"
 
-#include "siren.h"
-
-#include "smart_home_system.h"
+#include "button.h"
 
 //=====[Declaration of private defines]========================================
 
@@ -13,7 +11,7 @@
 
 //=====[Declaration and initialization of public global objects]===============
 
-DigitalOut sirenPin(PE_10);
+DigitalIn button(D10);
 
 //=====[Declaration of external public global variables]=======================
 
@@ -21,40 +19,18 @@ DigitalOut sirenPin(PE_10);
 
 //=====[Declaration and initialization of private global variables]============
 
-static bool sirenState = OFF;
-
 //=====[Declarations (prototypes) of private functions]========================
 
 //=====[Implementations of public functions]===================================
 
-void sirenInit()
+void buttonInit()
 {
-    sirenPin = ON;
+    button.mode(PullDown);
 }
 
-bool sirenStateRead()
+bool buttonStateRead()
 {
-    return sirenState;
-}
-
-void sirenStateWrite( bool state )
-{
-    sirenState = state;
-}
-
-void sirenUpdate( int strobeTime )
-{
-    static int accumulatedTimeAlarm = 0;
-    accumulatedTimeAlarm = accumulatedTimeAlarm + SYSTEM_TIME_INCREMENT_MS;
-    
-    if( sirenState ) {
-        if( accumulatedTimeAlarm >= strobeTime ) {
-                accumulatedTimeAlarm = 0;
-                sirenPin= !sirenPin;
-        }
-    } else {
-        sirenPin = ON;
-    }
+    return button;
 }
 
 //=====[Implementations of private functions]==================================
