@@ -7,23 +7,13 @@
 
 //=====[Declaration of public data types]======================================
 
-typedef enum {
-    DIRECTION_1,
-    DIRECTION_2,
-    STOPPED
-} motorDirection_t;
-
 //=====[Declarations (prototypes) of public functions]=========================
 
 void motorControlInit();
-void motorDirectionWrite( motorDirection_t direction );
-
-motorDirection_t motorDirectionRead();
-
-void motorControlUpdate();
-
-void readFloorLevelAndMoveElevatorToFirstFloor();
-bool confirmElevatorOnFirstFloor();
+void motorControl(); 
+int floorLevelRead();
+void checkAndBringDown();
+void bringToLevel(int level);
 
 //=====[#include guards - end]=================================================
 
