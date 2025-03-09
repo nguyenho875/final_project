@@ -5,23 +5,27 @@
 
 #include "motor.h"
 
+
 //=====[Declaration of private defines]========================================
 
-#define MOTOR_UPDATE_TIME 9
+//#define MOTOR_UPDATE_TIME 9
+#define PWM_PERIOD 0.001
 
 //=====[Declaration of private data types]=====================================
 
 //=====[Declaration and initialization of public global objects]===============
 
-DigitalInOut motorM1Pin(PF_2);
-DigitalInOut motorM2Pin(PE_3);
+DigitalIn button(D10);
+DigitalOut AIN1(PF_2);
+DigitalOut AIN2(PE_3);
+PwmOut PWMA(D13); 
+
+UnbufferedSerial uartUsb(USBTX, USBRX, 115200);
 
 //=====[Declaration of external public global variables]=======================
+int floorLevel = 1;
 
 //=====[Declaration and initialization of public global variables]=============
-
-motorDirection_t motorDirection;
-motorDirection_t motorState;
 
 //=====[Declaration and initialization of private global variables]============
 
@@ -30,74 +34,80 @@ motorDirection_t motorState;
 //=====[Implementations of public functions]===================================
 
 void motorControlInit()
-{
-    motorM1Pin.mode(OpenDrain);
-    motorM2Pin.mode(OpenDrain);
-    
-    motorM1Pin.input();
-    motorM2Pin.input();
-
-    motorDirection = STOPPED;
-    motorState = STOPPED;
+{   
+    button.mode(PullDown);
+    AIN1 = 0;
+    AIN2 = 0;
+    PWMA.period(PWM_PERIOD);
+    PWMA.write(0.0f);
 }
 
-motorDirection_t motorDirectionRead()
+void motorControl() 
 {
-    return motorDirection;
-}
-
-void motorDirectionWrite( motorDirection_t direction )
-{
-    motorDirection = direction;
-}
-
-void motorControlUpdate()
-{
-    static int motorUpdateCounter = 0;
-    
-    motorUpdateCounter++;
-    
-    if ( motorUpdateCounter > MOTOR_UPDATE_TIME ) {
+    if (button){
+        while (button){}
+        checkAndBringDown();
+        delay(100);
+        uartUsb.write( "Enter floor level: \r\n", 22 );
+        char receivedChar = '\0';
+        while (!uartUsb.readable()) {}
+        uartUsb.read( &receivedChar, 1 );
         
-        motorUpdateCounter = 0;
-        
-        switch ( motorState ) {
-            case DIRECTION_1:
-                if ( motorDirection == DIRECTION_2 || 
-                     motorDirection == STOPPED ) {
-                    motorM1Pin.input();
-                    motorM2Pin.input();
-                    motorState = STOPPED;
-                }
-            break;
-    
-            case DIRECTION_2:
-                if ( motorDirection == DIRECTION_1 || 
-                     motorDirection == STOPPED ) {
-                    motorM1Pin.input();
-                    motorM2Pin.input();
-                    motorState = STOPPED;
-                }
-            break;
-    
-            case STOPPED:
-            default:
-                if ( motorDirection == DIRECTION_1 ) {
-                    motorM2Pin.input();
-                    motorM1Pin.output();
-                    motorM1Pin = LOW;
-                    motorState = DIRECTION_1;
-                }
-                
-                if ( motorDirection == DIRECTION_2 ) {
-                    motorM1Pin.input();
-                    motorM2Pin.output();
-                    motorM2Pin = LOW;
-                    motorState = DIRECTION_2;
-                }
-            break;
-        }
-    }        
+        int level = receivedChar - '0';
+        bringToLevel(level);
+    }
 }
 
+void motorStop() 
+{
+    PWMA.write(0.0f);
+    AIN1 = 0;
+    AIN2 = 0;   
+}
+
+void motorUp()
+{
+    PWMA.write(0.3f);
+    AIN1 = 0;
+    AIN2 = 1;
+    delay(1000);
+    motorStop();
+    floorLevel += 1;
+}
+
+void motorDown()
+{
+    PWMA.write(0.3f);
+    AIN1 = 1;
+    AIN2 = 0;
+    delay(1000);
+    motorStop();
+    floorLevel -= 1;
+}
+
+int floorLevelRead() {
+    return floorLevel;
+}
+
+void checkAndBringDown() 
+{   // check if elevator is on 1st floor and bring down if not
+    if (floorLevel == 1) {
+        motorStop();
+        return;
+    }
+    while(floorLevel > 1) {
+        motorDown();
+        delay(300);
+    }
+    motorStop();
+}
+
+void bringToLevel(int level) {
+    // bring elevator to parameter level
+    while(floorLevel < level) {
+        motorUp();
+        delay(300);
+    }
+    motorStop();
+}
 //=====[Implementations of private functions]==================================
