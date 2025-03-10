@@ -1,37 +1,37 @@
 //=====[Libraries]=============================================================
-
 #include "mbed.h"
 #include "arm_book_lib.h"
-
 #include "button.h"
+#include "display.h"
+#include "elevator_system.h"
 
-//=====[Declaration of private defines]========================================
-
-//=====[Declaration of private data types]=====================================
-
-//=====[Declaration and initialization of public global objects]===============
-
-DigitalIn button(D10);
-
-//=====[Declaration of external public global variables]=======================
-
-//=====[Declaration and initialization of public global variables]=============
-
-//=====[Declaration and initialization of private global variables]============
-
-//=====[Declarations (prototypes) of private functions]========================
+//=====[Declaration of private global variables]===============================
+DigitalIn elevatorButton(D10, PullDown);
+static bool buttonPressed = false;
 
 //=====[Implementations of public functions]===================================
 
-void buttonInit()
+void updateButton()
 {
-    button.mode(PullDown);
+    bool currentState = elevatorButton.read();
+    if (currentState && !buttonPressed) {
+        if (returnToGroundFloor) {
+            displayClear();
+            displayCharPositionWrite(0, 0);
+            displayStringWrite("Returning to 1F");
+            returnToFirstFloor();
+            returnToGroundFloor = false;  // ✅ Reset flag
+        } else {
+            displayClear();
+            displayCharPositionWrite(0, 0);
+            displayStringWrite("Welcome!");
+            displayCharPositionWrite(0, 1);
+            displayStringWrite("Enter password:");
+            passwordEntryEnabled = true;
+        }
+        buttonPressed = true;
+    }
+    if (!currentState) {
+        buttonPressed = false;
+    }
 }
-
-bool buttonStateRead()
-{
-    return button;
-}
-
-//=====[Implementations of private functions]==================================
-
