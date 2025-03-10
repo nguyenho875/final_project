@@ -1,17 +1,11 @@
 //=====[#include guards - begin]===============================================
-
 #ifndef _MATRIX_KEYPAD_H_
 #define _MATRIX_KEYPAD_H_
 
-//=====[Declaration of public defines]=========================================
-
-//=====[Declaration of public data types]======================================
-
 //=====[Declarations (prototypes) of public functions]=========================
 
-void matrixKeypadInit( int updateTime_ms );
-char matrixKeypadUpdate();
+void updateKeypad();
+char matrixKeypadScan(); // ✅ Ensures proper function declaration
 
 //=====[#include guards - end]=================================================
-
 #endif // _MATRIX_KEYPAD_H_
