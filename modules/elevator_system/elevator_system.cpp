@@ -1,41 +1,33 @@
 //=====[Libraries]=============================================================
-
+#include "mbed.h"
 #include "arm_book_lib.h"
-
 #include "elevator_system.h"
 
-//=====[Declaration of private defines]========================================
-
-//=====[Declaration of private data types]=====================================
-
-//=====[Declaration and initialization of public global objects]===============
-
-//=====[Declaration of external public global variables]=======================
-
-//=====[Declaration and initialization of public global variables]=============
-
-//=====[Declaration and initialization of private global variables]============
-
-//=====[Declarations (prototypes) of private functions]========================
+//=====[Declaration of public global variables]================================
+bool passwordEntryEnabled = false;
+bool wrongCodeActive = false;
+bool correctCodeActive = false;
+bool returnToGroundFloor = false;
+int targetFloor = 1;  // Floor destination
 
 //=====[Implementations of public functions]===================================
 
-void smartHomeSystemInit()
+void elevatorSystemInit()
 {
-    userInterfaceInit();
-    fireAlarmInit();
-    pcSerialComInit();
+    displayInit();
+    ledsInit();
     motorControlInit();
 }
 
-void smartHomeSystemUpdate()
+void smartElevatorSystemRun()
 {
-    userInterfaceUpdate();
-    fireAlarmUpdate();    
-    pcSerialComUpdate();
-    eventLogUpdate();
-    motorControlUpdate();
-    delay(SYSTEM_TIME_INCREMENT_MS);
-}
+    updateButton();
+    updateKeypad();
+    ledsUpdate();
 
-//=====[Implementations of private functions]==================================
+    if (correctCodeActive) {
+        bringToLevel(targetFloor);  // ✅ Move elevator immediately after a valid passcode
+        correctCodeActive = false;
+        returnToGroundFloor = true;  // ✅ Set flag to return after next button press
+    }
+}
