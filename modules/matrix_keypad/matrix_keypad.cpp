@@ -1,141 +1,182 @@
 //=====[Libraries]=============================================================
-
 #include "mbed.h"
 #include "arm_book_lib.h"
-
 #include "matrix_keypad.h"
-
-#include "date_and_time.h"
+#include "display.h"
+#include "elevator_system.h"
+#include "motor.h"  // ✅ ADDED MOTOR MODULE
+#include "string.h"
+#include "stdio.h"
 
 //=====[Declaration of private defines]========================================
+#define KEYPAD_NUMBER_OF_ROWS 4
+#define KEYPAD_NUMBER_OF_COLS 4
+#define DEBOUNCE_DELAY 50  // Adjust as needed for stability
 
-#define MATRIX_KEYPAD_NUMBER_OF_ROWS    4
-#define MATRIX_KEYPAD_NUMBER_OF_COLS    4
-#define DEBOUNCE_KEY_TIME_MS        40
+//=====[Declaration of private global variables]===============================
+static char matrixKeypadIndexToCharArray[] = {
+    '1', '2', '3', 'A',
+    '4', '5', '6', 'B',
+    '7', '8', '9', 'C',
+    '*', '0', '#', 'D'
+};
 
-//=====[Declaration of private data types]=====================================
+// Define row and column pins
+DigitalOut keypadRowPins[KEYPAD_NUMBER_OF_ROWS] = {
+    DigitalOut(PB_3),
+    DigitalOut(PB_5),
+    DigitalOut(PC_7),
+    DigitalOut(PA_15)
+};
 
-typedef enum {
-    MATRIX_KEYPAD_SCANNING,
-    MATRIX_KEYPAD_DEBOUNCE,
-    MATRIX_KEYPAD_KEY_HOLD_PRESSED
-} matrixKeypadState_t;
+DigitalIn keypadColPins[KEYPAD_NUMBER_OF_COLS] = {
+    DigitalIn(PB_12, PullUp),
+    DigitalIn(PB_13, PullUp),
+    DigitalIn(PB_15, PullUp),
+    DigitalIn(PC_6, PullUp)
+};
 
-//=====[Declaration and initialization of public global objects]===============
-
-DigitalOut keypadRowPins[MATRIX_KEYPAD_NUMBER_OF_ROWS] = {PB_3, PB_5, PC_7, PA_15};
-DigitalIn keypadColPins[MATRIX_KEYPAD_NUMBER_OF_COLS]  = {PB_12, PB_13, PB_15, PC_6};
-
-//=====[Declaration of external public global variables]=======================
-
-//=====[Declaration and initialization of public global variables]=============
-
-//=====[Declaration and initialization of private global variables]============
-
-static matrixKeypadState_t matrixKeypadState;
-static int timeIncrement_ms = 0;
-
-//=====[Declarations (prototypes) of private functions]========================
-
-static char matrixKeypadScan();
-static void matrixKeypadReset();
+//=====[Declaration of global variables]=======================================
+static char enteredCode[5] = {0};
+static int codeIndex = 0;
+static int wrongAttempts = 0;
+static char lastKeyPressed = '\0';
 
 //=====[Implementations of public functions]===================================
-
-void matrixKeypadInit( int updateTime_ms )
-{
-    timeIncrement_ms = updateTime_ms;
-    matrixKeypadState = MATRIX_KEYPAD_SCANNING;
-    int pinIndex = 0;
-    for( pinIndex=0; pinIndex<MATRIX_KEYPAD_NUMBER_OF_COLS; pinIndex++ ) {
-        (keypadColPins[pinIndex]).mode(PullUp);
+void updateKeypad() {
+    if (!passwordEntryEnabled) {
+        return;
     }
-}
+    
+    char key = matrixKeypadScan();
 
-char matrixKeypadUpdate()
-{
-    static int accumulatedDebounceMatrixKeypadTime = 0;
-    static char matrixKeypadLastKeyPressed = '\0';
+    if (key != '\0' && key != lastKeyPressed) {  // Avoid repeating same key if held
+        lastKeyPressed = key;
 
-    char keyDetected = '\0';
-    char keyReleased = '\0';
+        if (key >= '0' && key <= '9') {  // Only process numeric keys
+            if (codeIndex < 4) {
+                enteredCode[codeIndex++] = key;
+                displayClear();
+                displayCharPositionWrite(0, 0);
+                displayStringWrite("Passcode:");
+                displayCharPositionWrite(0, 1);
 
-    switch( matrixKeypadState ) {
+                // ✅ Display entered passcode
+                char passcodeBuffer[5];
+                sprintf(passcodeBuffer, "%s", enteredCode);
+                displayStringWrite(passcodeBuffer);
+            }
+            if (codeIndex == 4) {  // ✅ After 4 digits entered, check credentials
+                enteredCode[4] = '\0';
+                bool validUser = false;
+                int userFloor = 1; // Default to first floor
 
-    case MATRIX_KEYPAD_SCANNING:
-        keyDetected = matrixKeypadScan();
-        if( keyDetected != '\0' ) {
-            matrixKeypadLastKeyPressed = keyDetected;
-            accumulatedDebounceMatrixKeypadTime = 0;
-            matrixKeypadState = MATRIX_KEYPAD_DEBOUNCE;
-        }
-        break;
+                struct User {
+                    const char* name;
+                    int floor;
+                    const char* code;
+                };
 
-    case MATRIX_KEYPAD_DEBOUNCE:
-        if( accumulatedDebounceMatrixKeypadTime >=
-            DEBOUNCE_KEY_TIME_MS ) {
-            keyDetected = matrixKeypadScan();
-            if( keyDetected == matrixKeypadLastKeyPressed ) {
-                matrixKeypadState = MATRIX_KEYPAD_KEY_HOLD_PRESSED;
-            } else {
-                matrixKeypadState = MATRIX_KEYPAD_SCANNING;
+                static const User users[] = {
+                    {"Kim",   3, "1234"},
+                    {"Bob",   2, "5678"},
+                    {"Charlie", 3, "9102"},
+                };
+
+                #define NUM_USERS (sizeof(users) / sizeof(users[0]))
+
+                for (int i = 0; i < NUM_USERS; i++) {
+                    if (strcmp(enteredCode, users[i].code) == 0) {
+                        displayClear();
+                        displayCharPositionWrite(0, 0);
+                        char welcomeMsg[20];
+                        sprintf(welcomeMsg, "Welcome %s", users[i].name);
+                        displayStringWrite(welcomeMsg);
+
+                        displayCharPositionWrite(0, 1);
+                        displayStringWrite("Floor: ");
+
+                        char floorBuffer[5];
+                        sprintf(floorBuffer, "%d", users[i].floor);
+                        displayStringWrite(floorBuffer);
+
+                        userFloor = users[i].floor;  // Store the user’s floor
+                        validUser = true;
+                        correctCodeActive = true;
+                        wrongCodeActive = false;
+                        passwordEntryEnabled = false;
+                        break;
+                    }
+                }
+
+                if (validUser) {
+                    bringToLevel(userFloor);  // ✅ Move the motor to the correct floor
+                } else {  // If the password is incorrect
+                    wrongAttempts++;
+                    displayClear();
+                    displayCharPositionWrite(0, 0);
+                    displayStringWrite("Invalid code!");
+
+                    wrongCodeActive = true;
+
+                    if (wrongAttempts >= 3) {  // ✅ System shutdown after 3 failed attempts
+                        displayClear();
+                        displayCharPositionWrite(0, 0);
+                        displayStringWrite("System shut down");
+
+                        Timer shutdownTimer;
+                        shutdownTimer.start();
+
+                        // ✅ 10-second system lockdown
+                        while (shutdownTimer.elapsed_time().count() < 10000000) {
+                            ThisThread::sleep_for(50ms);
+                        }
+                        shutdownTimer.stop();
+
+                        wrongAttempts = 0;
+                        passwordEntryEnabled = false;
+                        wrongCodeActive = false;
+                        displayClear();
+                    }
+                }
+
+                codeIndex = 0;
+                memset(enteredCode, 0, sizeof(enteredCode));
             }
         }
-        accumulatedDebounceMatrixKeypadTime =
-            accumulatedDebounceMatrixKeypadTime + timeIncrement_ms;
-        break;
-
-    case MATRIX_KEYPAD_KEY_HOLD_PRESSED:
-        keyDetected = matrixKeypadScan();
-        if( keyDetected != matrixKeypadLastKeyPressed ) {
-            if( keyDetected == '\0' ) {
-                keyReleased = matrixKeypadLastKeyPressed;
-            }
-            matrixKeypadState = MATRIX_KEYPAD_SCANNING;
-        }
-        break;
-
-    default:
-        matrixKeypadReset();
-        break;
     }
-    return keyReleased;
+
+    if (key == '\0') {  // ✅ Reset lastKeyPressed when no key is being pressed
+        lastKeyPressed = '\0';
+    }
 }
 
 //=====[Implementations of private functions]==================================
+char matrixKeypadScan() {  
+    int row, col;
 
-static char matrixKeypadScan()
-{
-    int row = 0;
-    int col = 0;
-    int i = 0; 
-
-    char matrixKeypadIndexToCharArray[] = {
-        '1', '2', '3', 'A',
-        '4', '5', '6', 'B',
-        '7', '8', '9', 'C',
-        '*', '0', '#', 'D',
-    };
-
-    for( row=0; row<MATRIX_KEYPAD_NUMBER_OF_ROWS; row++ ) {
-
-        for( i=0; i<MATRIX_KEYPAD_NUMBER_OF_ROWS; i++ ) {
-            keypadRowPins[i] = ON;
+    for (row = 0; row < KEYPAD_NUMBER_OF_ROWS; row++) {
+        // Set all rows HIGH first
+        for (int i = 0; i < KEYPAD_NUMBER_OF_ROWS; i++) {
+            keypadRowPins[i] = 1;
         }
 
-        keypadRowPins[row] = OFF;
+        // Set the current row LOW
+        keypadRowPins[row] = 0;
+        ThisThread::sleep_for(5ms); // Small delay for stability
 
-        for( col=0; col<MATRIX_KEYPAD_NUMBER_OF_COLS; col++ ) {
-            if( keypadColPins[col] == OFF ) {
-                return matrixKeypadIndexToCharArray[
-                    row*MATRIX_KEYPAD_NUMBER_OF_ROWS + col];
+        for (col = 0; col < KEYPAD_NUMBER_OF_COLS; col++) {
+            if (keypadColPins[col].read() == 0) { // Key is pressed
+                ThisThread::sleep_for(DEBOUNCE_DELAY);
+                
+                // Wait for key release
+                while (keypadColPins[col].read() == 0) {
+                    ThisThread::sleep_for(5ms);
+                }
+
+                return matrixKeypadIndexToCharArray[row * KEYPAD_NUMBER_OF_COLS + col];
             }
         }
     }
-    return '\0';
-}
-
-static void matrixKeypadReset()
-{
-    matrixKeypadState = MATRIX_KEYPAD_SCANNING;
+    return '\0'; // No key pressed
 }
