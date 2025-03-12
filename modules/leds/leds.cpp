@@ -3,8 +3,10 @@
 #include "leds.h"
 #include "elevator_system.h"
 #include "motor.h"  // ✅ Include motor to track elevator movement
+#include "matrix_keypad.h"
 
 //=====[Declaration of private global objects]=================================
+
 DigitalOut redLED(D12);
 DigitalOut greenLED(D11);
 
@@ -30,12 +32,11 @@ void ledsUpdate() {
     } else {
         redLED = 0;  // Stop blinking if correct code is entered
     }
+}
 
     // ✅ Green LED lights up when the elevator is moving
-    if (floorLevel != 1) {
-        greenLED = 1;
-        } else {
-            greenLED = 0;  // Turn off green LED when stopped at floor 1
-        }
-    }
+ //   if (validUser) {
+   //     greenLED = 1;
+     //   } else {
+       //     greenLED = 0;  // Turn off green LED when stopped at floor 1
 
