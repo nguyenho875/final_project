@@ -2,6 +2,7 @@
 #include "mbed.h"
 #include "arm_book_lib.h"
 #include "motor.h"
+#include "leds.h"
 
 //=====[Declaration of private defines]========================================
 #define PWM_PERIOD 0.001
@@ -12,6 +13,10 @@ DigitalOut AIN2(PE_3);
 PwmOut PWMA(D13);
 
 static int floorLevel = 1;
+extern DigitalOut greenLED;
+extern DigitalOut redLED;
+
+
 
 //=====[Implementations of public functions]===================================
 
@@ -32,7 +37,7 @@ void motorStop()
 
 void motorUp()
 {
-    PWMA.write(0.58f);
+    PWMA.write(.66f);
     AIN1 = 0;
     AIN2 = 1;
     delay(1000);
@@ -42,7 +47,7 @@ void motorUp()
 
 void motorDown()
 {
-    PWMA.write(0.18f);
+    PWMA.write(0.22f);
     AIN1 = 1;
     AIN2 = 0;
     delay(1000);
@@ -55,14 +60,18 @@ int floorLevelRead()
     return floorLevel;
 }
 
-void bringToLevel(int level)
-{
-    while (floorLevel < level) {
+void bringToLevel(int level) {
+    // Move the elevator to the specified floor
+    while(floorLevel < level) {
+        greenLED = 1;
+        redLED = 0;
         motorUp();
         delay(300);
     }
+    greenLED = 0;
     motorStop();
 }
+
 
 void returnToFirstFloor()
 {
