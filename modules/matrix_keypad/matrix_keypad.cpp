@@ -41,7 +41,7 @@ static char enteredCode[5] = {0};
 static int codeIndex = 0;
 static int wrongAttempts = 0;
 static char lastKeyPressed = '\0';
-
+bool validUser = false;
 //=====[Implementations of public functions]===================================
 void updateKeypad() {
     if (!passwordEntryEnabled) {
@@ -81,6 +81,8 @@ void updateKeypad() {
                     {"Kim",   3, "1234"},
                     {"Bob",   2, "5678"},
                     {"Charlie", 3, "9102"},
+                    {"Sunny", 3, "9103"},
+                    {"James", 2, "1213"}
                 };
 
                 #define NUM_USERS (sizeof(users) / sizeof(users[0]))
