@@ -13,6 +13,7 @@ In the development of our elevator security system, we faced several critical de
 We chose a gear motor instead of a positional or continuous servo motor due to the gear motor's strength and reliability in lifting the elevator box vertically between floors. 
 While positional servo motors offer precise angular positioning and continuous servos facilitate simple speed adjustments, neither provided sufficient torque and linear movement simplicity needed for our elevator mechanism. 
 Ultimately, the gear motor's robust lifting capability and straightforward integration outweighed the precision angular control provided by servos. 
+<br/>
 Another key decision involved user authentication; we selected a keypad entry system over a fingerprint scanner due to practical constraints. 
 Although fingerprint scanners provide enhanced security through biometric verification, our selected fingerprint scanner lacked an existing Mbed-compatible library. 
 Integrating it would have required either extensive modifications to convert existing libraries or implementing an additional microcontroller, increasing both complexity and potential points of failure. 
@@ -20,5 +21,11 @@ The keypad solution provided seamless integration with our existing Mbed-based s
 
 ![image](https://github.com/user-attachments/assets/210d9014-db3d-400b-82c3-6084077cbcb5)
 ![image](https://github.com/user-attachments/assets/4c90974b-b36b-4c09-9bb0-1bf34446c235)
+
+
+## Modular design:
+The code consists of modules for all compoenents in the system such as LEDs, motor, button, matrix keypad and LCD display, and two additional modules, namely user interface and elevator systme. The fully functional system in the elevator system module was broken up based on the order of operation and interaction of the user with system, which include everything that happends before the user is requried to enter their code through the matrix keypad for access authorization, the authorization process, and everything after verification is over, depending on the result. The entire authorization process is coded in and performed by the matrix keypad module (most importantly the keypadUpdate() function), while the operation of the rest of the system (LEDs, motor, display, button) before and after authorization is controlled in the user interface module. The LCD display is involved to communicate with the user across all steps, so functions from this module are called from both the user intereface and matrix keypad modules. 
+![IMG_C9B084701AB8-1](https://github.com/user-attachments/assets/bd9deab0-9252-4e85-a208-1407cdbd69ea)
+
 
 
