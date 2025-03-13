@@ -1,33 +1,24 @@
 //=====[Libraries]=============================================================
 #include "mbed.h"
 #include "arm_book_lib.h"
-#include "elevator_system.h"
 
-//=====[Declaration of public global variables]================================
-bool passwordEntryEnabled = false;
-bool wrongCodeActive = false;
-bool correctCodeActive = false;
-bool returnToGroundFloor = false;
-int targetFloor = 1;  // Floor destination
+#include "elevator_system.h"
+#include "user_interface.h"
+#include "matrix_keypad.h"
 
 //=====[Implementations of public functions]===================================
 
 void elevatorSystemInit()
 {
-    displayInit();
-    ledsInit();
-    motorControlInit();
+    interfaceInit();
+    // no initilization for matrix keypad
 }
 
-void smartElevatorSystemRun()
+void elevatorSystemRun()
 {
-    updateButton();
-    updateKeypad();
-    ledsUpdate();
-
-    if (correctCodeActive) {
-        bringToLevel(targetFloor);  // ✅ Move elevator immediately after a valid passcode
-        correctCodeActive = false;
-        returnToGroundFloor = true;  // ✅ Set flag to return after next button press
-    }
+    interfaceBeforeKeypadUpdate();
+    keypadUpdate();
+    interfaceAfterKeypadUpdate();
+    delay(SYSTEM_TIME_INCREMENT_MS);
 }
+

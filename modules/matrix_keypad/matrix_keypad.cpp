@@ -1,27 +1,19 @@
 //=====[Libraries]=============================================================
 #include "mbed.h"
 #include "arm_book_lib.h"
+#include "stdio.h"   // c library for more operational functions
+#include "string.h"  // c library for more string functions
+
 #include "matrix_keypad.h"
 #include "display.h"
-#include "elevator_system.h"
-#include "motor.h"  // ✅ ADDED MOTOR MODULE
-#include "string.h"
-#include "stdio.h"
+#include "user_interface.h"
 
 //=====[Declaration of private defines]========================================
 #define KEYPAD_NUMBER_OF_ROWS 4
 #define KEYPAD_NUMBER_OF_COLS 4
-#define DEBOUNCE_DELAY 50  // Adjust as needed for stability
+#define DEBOUNCE_KEY_TIME_MS   40
 
-//=====[Declaration of private global variables]===============================
-static char matrixKeypadIndexToCharArray[] = {
-    '1', '2', '3', 'A',
-    '4', '5', '6', 'B',
-    '7', '8', '9', 'C',
-    '*', '0', '#', 'D'
-};
-
-// Define row and column pins
+//=====[Declaration and initialization of public global objects]===============
 DigitalOut keypadRowPins[KEYPAD_NUMBER_OF_ROWS] = {
     DigitalOut(PB_3),
     DigitalOut(PB_5),
@@ -36,15 +28,30 @@ DigitalIn keypadColPins[KEYPAD_NUMBER_OF_COLS] = {
     DigitalIn(PC_6, PullUp)
 };
 
-//=====[Declaration of global variables]=======================================
-static char enteredCode[5] = {0};
-static int codeIndex = 0;
-static int wrongAttempts = 0;
-static char lastKeyPressed = '\0';
+//=====[Declaration and initialization of public global variables]=============
+char enteredCode[5] = {0};
+int codeIndex = 0;
+int wrongAttempts = 0;
+char lastKeyPressed = '\0';
+
+bool correctCodeActive = false;
+bool wrongCodeActive = false;
 bool validUser = false;
+
+//=====[Declaration of private global variables]===============================
+static char matrixKeypadIndexToCharArray[] = {
+    '1', '2', '3', 'A',
+    '4', '5', '6', 'B',
+    '7', '8', '9', 'C',
+    '*', '0', '#', 'D'
+};
+
+//=====[Declarations (prototypes) of private functions]========================
+static char matrixKeypadScan(); 
+
 //=====[Implementations of public functions]===================================
-void updateKeypad() {
-    if (!passwordEntryEnabled) {
+void keypadUpdate() {
+    if (!interfacePasswordEntryEnabledRead()) {
         return;
     }
     
@@ -61,15 +68,14 @@ void updateKeypad() {
                 displayStringWrite("Passcode:");
                 displayCharPositionWrite(0, 1);
 
-                // ✅ Display entered passcode
+                // Display entered passcode
                 char passcodeBuffer[5];
                 sprintf(passcodeBuffer, "%s", enteredCode);
                 displayStringWrite(passcodeBuffer);
             }
-            if (codeIndex == 4) {  // ✅ After 4 digits entered, check credentials
+            if (codeIndex == 4) {  //  After 4 digits entered, check credentials
                 enteredCode[4] = '\0';
-                bool validUser = false;
-                int userFloor = 1; // Default to first floor
+                validUser = false;
 
                 struct User {
                     const char* name;
@@ -102,59 +108,61 @@ void updateKeypad() {
                         sprintf(floorBuffer, "%d", users[i].floor);
                         displayStringWrite(floorBuffer);
 
-                        userFloor = users[i].floor;  // Store the user’s floor
                         validUser = true;
+                        interfaceTargetFloorWrite(users[i].floor);
                         correctCodeActive = true;
                         wrongCodeActive = false;
-                        passwordEntryEnabled = false;
+                        interfacePasswordEntryEnabledWrite(false);
                         break;
                     }
                 }
+            } 
+            else {  // If the password is incorrect
+                wrongAttempts++;
+                displayClear();
+                displayCharPositionWrite(0, 0);
+                displayStringWrite("Invalid code!");
 
-                if (validUser) {
-                    bringToLevel(userFloor);  // ✅ Move the motor to the correct floor
-                } else {  // If the password is incorrect
-                    wrongAttempts++;
+                wrongCodeActive = true;
+
+                if (wrongAttempts >= 3) {  // System shutdown after 3 failed attempts
                     displayClear();
                     displayCharPositionWrite(0, 0);
-                    displayStringWrite("Invalid code!");
+                    displayStringWrite("System shut down");
 
-                    wrongCodeActive = true;
+                    delay(10000); // 10 seconds system shutdown
 
-                    if (wrongAttempts >= 3) {  // ✅ System shutdown after 3 failed attempts
-                        displayClear();
-                        displayCharPositionWrite(0, 0);
-                        displayStringWrite("System shut down");
-
-                        Timer shutdownTimer;
-                        shutdownTimer.start();
-
-                        // ✅ 10-second system lockdown
-                        while (shutdownTimer.elapsed_time().count() < 10000000) {
-                            ThisThread::sleep_for(50ms);
-                        }
-                        shutdownTimer.stop();
-
-                        wrongAttempts = 0;
-                        passwordEntryEnabled = false;
-                        wrongCodeActive = false;
-                        displayClear();
-                    }
+                    wrongAttempts = 0;
+                    interfacePasswordEntryEnabledWrite(false);
+                    wrongCodeActive = false;
+                    displayClear();
                 }
-
-                codeIndex = 0;
-                memset(enteredCode, 0, sizeof(enteredCode));
             }
+            codeIndex = 0;
+            memset(enteredCode, 0, sizeof(enteredCode));
         }
     }
 
-    if (key == '\0') {  // ✅ Reset lastKeyPressed when no key is being pressed
+    if (key == '\0') {  // Reset lastKeyPressed when no key is being pressed
         lastKeyPressed = '\0';
     }
 }
 
+void keypadCorrectCodeActiveWrite(state)
+{
+    correctCodeActive = state;
+}
+
+bool keypadWrongCodeActiveRead() {
+    return wrongCodeActive;
+}
+
+bool keypadValidUserRead() {
+    return validUser;
+}
+
 //=====[Implementations of private functions]==================================
-char matrixKeypadScan() {  
+static char matrixKeypadScan() {  
     int row, col;
 
     for (row = 0; row < KEYPAD_NUMBER_OF_ROWS; row++) {
@@ -162,14 +170,12 @@ char matrixKeypadScan() {
         for (int i = 0; i < KEYPAD_NUMBER_OF_ROWS; i++) {
             keypadRowPins[i] = 1;
         }
-
         // Set the current row LOW
         keypadRowPins[row] = 0;
-        ThisThread::sleep_for(5ms); // Small delay for stability
 
         for (col = 0; col < KEYPAD_NUMBER_OF_COLS; col++) {
             if (keypadColPins[col].read() == 0) { // Key is pressed
-                ThisThread::sleep_for(DEBOUNCE_DELAY);
+                ThisThread::sleep_for(DEBOUNCE_KEY_TIME_MS);
                 
                 // Wait for key release
                 while (keypadColPins[col].read() == 0) {
